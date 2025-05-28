@@ -1,19 +1,14 @@
 import os
+import requests
 from django.shortcuts import render
 from .forms import UploadForm
-import whisperx
-import torch
 from deep_translator import GoogleTranslator
-
-# Your Hugging Face Token
 from dotenv import load_dotenv
 
 load_dotenv()
-
 HF_TOKEN = os.getenv("HF_TOKEN")
-
-
-# replace with your token
+API_URL = "https://api-inference.huggingface.co/models/openai/whisper-tiny"
+HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"}
 
 def index(request):
     transcription = None
@@ -33,37 +28,10 @@ def index(request):
                     destination.write(chunk)
 
             try:
-                # Load WhisperX model
-                device = "cuda" if torch.cuda.is_available() else "cpu"
-                model = whisperx.load_model("large-v2", device)
-
-                # Transcribe audio
-                result = model.transcribe(file_path)
-
-                # Align whisper output
-                model_a, metadata = whisperx.load_align_model(
-                    language_code=result["language"], device=device
-                )
-                result = whisperx.align(
-                    result["segments"], model_a, metadata,
-                    file_path, device, return_char_alignments=False
-                )
-
-                # Speaker diarization
-                diarize_model = whisperx.DiarizationPipeline(
-                    use_auth_token=HF_TOKEN, device=device
-                )
-                diarize_segments = diarize_model(file_path)
-
-                # Assign speakers to segments
-                result = whisperx.assign_word_speakers(diarize_segments, result)
-
-                # Build transcription with speaker labels
-                transcription = ""
-                for segment in result["segments"]:
-                    speaker = segment.get("speaker", "Speaker")
-                    text = segment["text"]
-                    transcription += f"[{speaker}]: {text}\n"
+                with open(file_path, "rb") as f:
+                    response = requests.post(API_URL, headers=HEADERS, data=f)
+                    data = response.json()
+                    transcription = data.get("text", "No transcription returned.")
 
                 # Translate to Telugu
                 try:
@@ -73,9 +41,11 @@ def index(request):
                 except Exception as e:
                     telugu_translation = f"Translation error: {e}"
 
-            except Exception as e:
-                error_message = str(e)
+                # Delete file to save space
+                os.remove(file_path)
 
+            except Exception as e:
+                error_message = f"Transcription error: {e}"
     else:
         form = UploadForm()
 
