@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Media Transcriber</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            background-color: #f9f9f9;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        form {
+            margin-bottom: 30px;
+        }
+
+        input[type="file"] {
+            padding: 10px;
+        }
+
+        input[type="submit"] {
+            padding: 10px 20px;
+            background-color: #007bff;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+
+        pre {
+            background-color: #f1f1f1;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .error {
+            color: red;
+        }
+
+        #status-message {
+            margin-top: 20px;
+            font-weight: bold;
+            color: green;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Media Transcriber & Translator</h1>
+
+    <form method="post" enctype="multipart/form-data" onsubmit="showProcessingMessage()">
+        {% csrf_token %}
+        {{ form.media_file.label_tag }}<br><br>
+        {{ form.media_file }}<br><br>
+        <input type="submit" value="Upload and Transcribe">
+    </form>
+
+    <div id="status-message">
+        {% if transcription %}
+            ✅ Process completed.
+        {% endif %}
+    </div>
+
+    {% if transcription %}
+        <h2>🗣 Speaker-Labeled Transcription (English)</h2>
+        <pre>{{ transcription }}</pre>
+    {% endif %}
+
+    {% if translation %}
+        <h2>🌐 Telugu Translation</h2>
+        <pre>{{ translation }}</pre>
+    {% endif %}
+
+    {% if error_message %}
+        <div class="error"><strong>Error:</strong> {{ error_message }}</div>
+    {% endif %}
+
+    <script>
+        function showProcessingMessage() {
+            document.getElementById("status-message").innerText = "⏳ Processing...";
+        }
+    </script>
+
+</body>
+</html>
